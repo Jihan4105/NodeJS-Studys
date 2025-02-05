@@ -68,37 +68,38 @@ app.post("/makeUser", async (req,res) => {
 })
 
 
-app.post("/login", async (req, res) => {
+// app.post("/login", async (req, res) => {
   
-  // User Authentication
-  const user = userDatas.find(user => user.id === req.body.userId)
-  if(user === null) {
-    return res.status(400).send("We can't find users")
-  }
-  try {
-    if(await bcrypt.compare(req.body.userPassword, user.password)){
-      // 두 값이 일치함 (해싱되어 저장된 비밀번호와 input으로 넘어온 비밀번호가 일치함)
-      // res.json({ message: "Success"})
-      const { userId, userPassword } = req.body
-      const correctUser = { id: userId, password: userPassword}
+//   // User Authentication
+//   const user = userDatas.find(user => user.id === req.body.userId)
+//   if(user === null) {
+//     return res.status(400).send("We can't find users")
+//   }
+//   try {
+//     if(await bcrypt.compare(req.body.userPassword, user.password)){
+//       // 두 값이 일치함 (해싱되어 저장된 비밀번호와 input으로 넘어온 비밀번호가 일치함)
+//       // res.json({ message: "Success"})
+//       const { userId, userPassword } = req.body
+//       const correctUser = { id: userId, password: userPassword}
       
-      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
-      res.json({ accessToken: accessToken })
-    } else {
-      // 아님
-      res.json({ message: "Not allowed"})
-    }
-  } catch(error) {
-    res.status(500).json({ message: error.message})
-  }
-})
+//       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
+//       res.json({ accessToken: accessToken })
+//     } else {
+//       // 아님
+//       res.json({ message: "Not allowed"})
+//     }
+//   } catch(error) {
+//     res.status(500).json({ message: error.message})
+//   }
+// })
 
 app.get("/posts", authenticateToken, (req, res) => {
+  console.log(req.user)
   res.json(posts.filter((post) => { return post.userName === req.user.userName}))
 })
 
 function authenticateToken(req, res, next) {
-  // client에서 보내주는 accessToken을 받아서 메모리에 저장된 토큰과 비교하는 Middleware
+  // client에서 보내주는 accessToken을 받아서 저장된 토큰과 비교하는 Middleware
 
   // Client에서 header로 요청과함께 토큰을 보냄 `Bearer ${TOKEN}` 형태
   const authHeader = req.headers["authorization"]
