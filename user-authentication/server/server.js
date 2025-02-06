@@ -67,32 +67,6 @@ app.post("/makeUser", async (req,res) => {
   }
 })
 
-
-// app.post("/login", async (req, res) => {
-  
-//   // User Authentication
-//   const user = userDatas.find(user => user.id === req.body.userId)
-//   if(user === null) {
-//     return res.status(400).send("We can't find users")
-//   }
-//   try {
-//     if(await bcrypt.compare(req.body.userPassword, user.password)){
-//       // 두 값이 일치함 (해싱되어 저장된 비밀번호와 input으로 넘어온 비밀번호가 일치함)
-//       // res.json({ message: "Success"})
-//       const { userId, userPassword } = req.body
-//       const correctUser = { id: userId, password: userPassword}
-      
-//       const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET)
-//       res.json({ accessToken: accessToken })
-//     } else {
-//       // 아님
-//       res.json({ message: "Not allowed"})
-//     }
-//   } catch(error) {
-//     res.status(500).json({ message: error.message})
-//   }
-// })
-
 app.get("/posts", authenticateToken, (req, res) => {
   console.log(req.user)
   res.json(posts.filter((post) => { return post.userName === req.user.userName}))
@@ -120,6 +94,79 @@ function authenticateToken(req, res, next) {
     //미들웨어에서 빠져나가서 뒤의 Controller를 실행하는 함수
     next()
   })
+}
+
+app.post("/token", (req, res) => {
+  const refreshToken = req.body.token
+
+  // refreshToken이 만약 없이 요청이 온다면 401에러러
+  if(refreshToken === null) {
+    return res.sendStatus(401)
+  }
+
+  // refreshToken을 저장해두는 곳에 현재 받은 refreshToken이 없으면 금지된 요청청
+  if(!refreshTokens.includes(refreshToken)) {
+    res.sendStatus(403)
+  }
+
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    // 에러가 있으면 에러리턴턴
+    if(err) {
+      return res.sendStatus(403)
+    }
+    console.log(user)
+    // accessToken을 만드는데 이 데이터에는는 다른 여러 데이터
+    // 예를들어 토큰 유효기간, 만들어진 기간 등등이 있기때문에에
+    // 실제로 우리가 토큰에 담을 데이터만 뽑아서 담아야한다.
+    const accessToken = generateAccesToken({ id: user.id, password: user.password, userName: user.userName})
+    res.json({ accessToken: accessToken })
+  })
+})
+
+app.delete("/logout", (req, res) => {
+  //지금은 배열로 DB를 대신하지만 실제론 DB연결이 필요
+  refreshTokens = refreshTokens.filter((token) => {
+    return token !== req.body.token
+  })
+
+  // 원래는 refreshToken을 이용하여 새로운 accesToken을 계속 무한정 만들어낼 수 있었지만 
+  // logout과 동시에 그 refreshToken이 사라져 더이상 사라진 refreshToken으로
+  // accessToken을 만들어 낼 수 없음. /token으로 만들어낼려하면 403에러 
+  res.sendStatus(204)
+})
+
+app.post("/login", async (req, res) => {
+  
+  // User Authentication
+  const user = userDatas.find(user => user.id === req.body.userId)
+  if(user === null) {
+    return res.status(400).send("We can't find users")
+  }
+  try {
+    if(await bcrypt.compare(req.body.userPassword, user.password)){
+      // 두 값이 일치함 (해싱되어 저장된 비밀번호와 input으로 넘어온 비밀번호가 일치함)
+      // res.json({ message: "Success"})
+      const { userId, userPassword } = req.body
+      const correctUser = { id: userId, password: userPassword, userName: user.userName}
+      
+      const accessToken = generateAccesToken(correctUser)
+      const refreshToken = jwt.sign(correctUser, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d"})
+      refreshTokens.push(refreshToken)
+
+      res.json({ accessToken: accessToken, refreshToken: refreshToken })
+    } else {
+      // 아님
+      res.json({ message: "Not allowed"})
+    }
+  } catch(error) {
+    res.status(500).json({ message: error.message})
+  }
+})
+
+
+function generateAccesToken(user) {
+  //accessToken을 만드는데 expiresIn 즉 30s뒤에 이 토큰은 못사용하게 만듦
+  return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "59s"})
 }
 
 
