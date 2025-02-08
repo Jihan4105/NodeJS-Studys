@@ -1,37 +1,29 @@
 import { useState } from "react"
+import Login from "../components/Login"
+
+import setPageContext from "../contexts/SetPageContext"
+import DashBoard from "../components/DashBoard"
 
 function IndexApp() {
-  
-  const [userId, setUserId] = useState("")
-  const [userPassword, setUserPassword] = useState("")
-  const [resultText, setResultText] = useState("")
+  const [pageStatus, setPageStatus] = useState("logIn")
+  let page 
+
+  switch(pageStatus) {
+    case "logIn" :
+      page = <Login /> 
+      break;
+    case "dashboard" :
+      page = <DashBoard />
+      break;
+  }
 
   return (
     <>
-      <input type="text" id="id-input" name="id-input" value={userId} onChange={(e) => {setUserId(e.target.value)}}/>
-      <input type="text" id="password-input" name="password-input" value={userPassword} onChange={(e) => {setUserPassword(e.target.value)}}/>
-      <button onClick={() => {loginHandler(userId, userPassword, setResultText)}}>Login</button>
-      <p className="res-text">{resultText}</p>
+      <setPageContext.Provider value={setPageStatus}>
+        {page}
+      </setPageContext.Provider>
     </>
   )
 }
-
-async function loginHandler(userId, userPassword, setResultText) {
-  const res = await fetch("http://127.0.0.1:3000/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      userId: userId,
-      userPassword: userPassword
-    })
-  })
-  const data = await res.json()
-
-  setResultText(data.message)
-}
-
-
 
 export default IndexApp
